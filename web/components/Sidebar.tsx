@@ -20,12 +20,21 @@ const ITEMS: Array<{ type: WidgetType; label: string; key: string }> = [
   { type: "recap", label: "MARKET RECAP", key: "" },
 ];
 
+const QUANT_ITEMS: Array<{ type: WidgetType; label: string }> = [
+  { type: "quant-screen", label: "量化选股" },
+  { type: "quant-watch", label: "A股自选 / 日线" },
+  { type: "quant-backtest", label: "策略回测" },
+  { type: "quant-alerts", label: "提醒 / 历史" },
+];
+
 export default function Sidebar() {
   const addWidget = useTerminal((s) => s.addWidget);
   const resetWorkspace = useTerminal((s) => s.resetWorkspace);
 
   return (
-    <nav className="w-32 bg-[var(--panel)] border-r border-[var(--border)] flex flex-col shrink-0">
+    <nav className="w-32 bg-[var(--panel)] border-r border-[var(--border)] flex flex-col shrink-0 overflow-y-auto" aria-label="组件入口">
+      <div className="amber px-2 py-1 text-[10px] tracking-wider border-b border-[var(--border)]">A-SHARE QUANT</div>
+      {QUANT_ITEMS.map((item) => <button key={item.type} onClick={() => addWidget(item.type)} className="text-left px-2 py-2 text-[11px] hover:bg-[#1a1a1a] hover:text-[var(--amber)]">{item.label}</button>)}
       <div className="dim px-2 py-1 text-[10px] uppercase tracking-wider border-b border-[var(--border)]">
         Add widget
       </div>

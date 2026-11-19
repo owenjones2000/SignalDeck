@@ -1,0 +1,17 @@
+.git
+.claude
+**/node_modules
+**/.next
+**/dist
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/*.egg-info
+**/*.tsbuildinfo
+.env
+.env.local
+data
+docs
+config/trading-calendar.json
+web/package-lock.json
+*.log

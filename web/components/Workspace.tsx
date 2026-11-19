@@ -22,6 +22,12 @@ import InsiderWidget from "./widgets/InsiderWidget";
 import TvWidget from "./widgets/TvWidget";
 import RecapWidget from "./widgets/RecapWidget";
 import WidgetErrorBoundary from "./WidgetErrorBoundary";
+import dynamic from "next/dynamic";
+
+const ScreenWidget = dynamic(() => import("./quant/ScreenWidget"), { loading: () => <p className="dim p-2">加载选股…</p> });
+const QuantWatchWidget = dynamic(() => import("./quant/WatchWidget"), { loading: () => <p className="dim p-2">加载自选…</p> });
+const BacktestWidget = dynamic(() => import("./quant/BacktestWidget"), { loading: () => <p className="dim p-2">加载回测…</p> });
+const AlertsWidget = dynamic(() => import("./quant/AlertsWidget"), { loading: () => <p className="dim p-2">加载提醒…</p> });
 
 const Grid = WidthProvider(GridLayout);
 
@@ -42,6 +48,10 @@ function WidgetBody({ widget }: { widget: WidgetInstance }) {
     case "insider": return <InsiderWidget widget={widget} />;
     case "tv": return <TvWidget />;
     case "recap": return <RecapWidget />;
+    case "quant-screen": return <ScreenWidget />;
+    case "quant-watch": return <QuantWatchWidget />;
+    case "quant-backtest": return <BacktestWidget />;
+    case "quant-alerts": return <AlertsWidget />;
   }
 }
 
@@ -96,6 +106,8 @@ const TITLES: Record<string, string> = {
   heatmap: "Heatmap", screener: "Screener", crypto: "Crypto",
   macro: "Macro / Indexes", options: "Option Chain", portfolio: "Portfolio", ai: "AI Assistant",
   calendar: "Calendar", insider: "Insider Transactions", tv: "Live TV", recap: "Market Recap",
+  "quant-screen": "量化选股 / Screen", "quant-watch": "A股自选 / Daily",
+  "quant-backtest": "策略回测 / Backtest", "quant-alerts": "提醒 / Notifications",
 };
 
 export default function Workspace() {

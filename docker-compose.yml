@@ -1,4 +1,19 @@
 services:
+  quant:
+    build:
+      context: .
+      dockerfile: quant/Dockerfile
+    environment:
+      - QUANT_HOST=0.0.0.0
+      - QUANT_PORT=8010
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
   api:
     build:
       context: .
@@ -14,12 +29,27 @@ services:
       - API_HOST=0.0.0.0 # safe: still only published to 127.0.0.1 above
       - WEB_ORIGIN=${WEB_ORIGIN:-http://localhost:3000}
       - DATA_DIR=/app/data
+      - QUANT_URL=http://quant:8010
+      - QUANT_TIMEOUT_MS=${QUANT_TIMEOUT_MS:-30000}
+      - QUANT_CALENDAR_FILE=/app/config/trading-calendar.json
+      - QUANT_FEISHU_WEBHOOK=${QUANT_FEISHU_WEBHOOK:-}
+      - QUANT_FEISHU_SECRET=${QUANT_FEISHU_SECRET:-}
+      - QUANT_SMTP_HOST=${QUANT_SMTP_HOST:-}
+      - QUANT_SMTP_PORT=${QUANT_SMTP_PORT:-587}
+      - QUANT_SMTP_USER=${QUANT_SMTP_USER:-}
+      - QUANT_SMTP_PASS=${QUANT_SMTP_PASS:-}
+      - QUANT_EMAIL_FROM=${QUANT_EMAIL_FROM:-}
+      - QUANT_EMAIL_TO=${QUANT_EMAIL_TO:-}
       # Leave unset unless you put your own trusted reverse proxy in front of
       # the web service (see README > Security defaults) — otherwise a caller
       # could forge X-Forwarded-For to dodge the /api/ai rate limit.
       - TRUST_PROXY=${TRUST_PROXY:-}
     volumes:
       - terminal-data:/app/data
+      - ./config:/app/config:ro
+    depends_on:
+      quant:
+        condition: service_healthy
     restart: unless-stopped
 
   web:

@@ -19,7 +19,11 @@ export type WidgetType =
   | "calendar"
   | "insider"
   | "tv"
-  | "recap";
+  | "recap"
+  | "quant-screen"
+  | "quant-watch"
+  | "quant-backtest"
+  | "quant-alerts";
 
 export type WidgetInstance = {
   id: string;
@@ -80,6 +84,10 @@ const SIZE_BY_TYPE: Record<WidgetType, { w: number; h: number }> = {
   insider: { w: 7, h: 9 },
   tv: { w: 6, h: 11 },
   recap: { w: 5, h: 12 },
+  "quant-screen": { w: 8, h: 14 },
+  "quant-watch": { w: 8, h: 16 },
+  "quant-backtest": { w: 8, h: 18 },
+  "quant-alerts": { w: 12, h: 16 },
 };
 
 export const useTerminal = create<TerminalState>()(
@@ -101,7 +109,7 @@ export const useTerminal = create<TerminalState>()(
           const size = SIZE_BY_TYPE[type];
           const maxY = st.layout.reduce((m, l) => Math.max(m, l.y + l.h), 0);
           return {
-            widgets: [...st.widgets, { id, type, symbol, linked: !symbol }],
+            widgets: [...st.widgets, { id, type, symbol, linked: !symbol && !type.startsWith("quant-") }],
             layout: [...st.layout, { i: id, x: 0, y: maxY, ...size }],
           };
         }),

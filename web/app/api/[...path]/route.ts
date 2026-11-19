@@ -21,18 +21,23 @@ async function proxy(req: NextRequest, path: string[]): Promise<NextResponse> {
 
   const hasBody = req.method !== "GET" && req.method !== "HEAD" && req.method !== "DELETE";
 
-  const upstream = await fetch(url, {
-    method: req.method,
-    headers,
-    body: hasBody ? await req.text() : undefined,
-    cache: "no-store",
-  });
+  try {
+    const upstream = await fetch(url, {
+      method: req.method,
+      headers,
+      body: hasBody ? await req.text() : undefined,
+      cache: "no-store",
+      signal: AbortSignal.timeout(30_000),
+    });
 
-  const body = upstream.status === 204 ? null : await upstream.arrayBuffer();
-  return new NextResponse(body, {
-    status: upstream.status,
-    headers: { "content-type": upstream.headers.get("content-type") ?? "application/json" },
-  });
+    const body = upstream.status === 204 ? null : await upstream.arrayBuffer();
+    return new NextResponse(body, {
+      status: upstream.status,
+      headers: { "content-type": upstream.headers.get("content-type") ?? "application/json" },
+    });
+  } catch {
+    return NextResponse.json({ error: "API 服务无法连接，请检查服务地址和运行状态" }, { status: 502 });
+  }
 }
 
 type RouteContext = { params: Promise<{ path: string[] }> };

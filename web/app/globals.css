@@ -151,3 +151,18 @@ button.term-btn.active {
 .react-grid-item > .react-resizable-handle::after {
   border-color: var(--amber-dim) !important;
 }
+
+.quant-widget { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+.quant-status { border-left: 2px solid var(--amber-dim); padding: 5px 8px; background: var(--panel-2); }
+.quant-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.quant-field { display: flex; flex-direction: column; gap: 4px; flex: 1 1 130px; min-width: 0; }
+.quant-field input, .quant-field select { width: 100%; min-height: 28px; }
+.quant-section { border-top: 1px solid var(--border); padding-top: 8px; }
+.quant-table { overflow-x: auto; margin-top: 6px; }
+.quant-error { color: var(--down); border-left: 2px solid var(--down); padding: 6px 8px; background: #210d0d; overflow-wrap: anywhere; }
+.quant-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; }
+.quant-metric { background: var(--panel-2); border: 1px solid var(--border); padding: 8px; }
+.quant-metric strong { display: block; font-size: 16px; margin-top: 4px; }
+.quant-widget button:focus-visible { outline: 1px solid var(--amber); outline-offset: 2px; }
+.quant-widget button:disabled { opacity: .45; cursor: not-allowed; }
+.quant-chart { width: 100%; height: 160px; background: var(--panel-2); }

@@ -7,6 +7,9 @@ import { allStats } from "./providers/registry.js";
 import { requireApiKey } from "./auth.js";
 import { rateLimit } from "./rateLimit.js";
 import { velaRouter } from "./routes/vela.js";
+import { createQuantRouter } from "./routes/quant.js";
+import { createQuantRuntime } from "./quant/runtime.js";
+import { db } from "./db.js";
 
 const app = express();
 
@@ -39,6 +42,8 @@ app.use(express.json());
 // hundreds of outbound calls per request — see getQuotes) fast enough to get
 // this deployment's IP rate-limited or banned by Nasdaq/Yahoo/Stooq/SEC.
 app.use("/api", rateLimit({ windowMs: 60_000, max: 240 }));
+const quant = createQuantRuntime(db);
+app.use("/api/quant", createQuantRouter(quant));
 app.use("/api/vela", velaRouter);
 app.use("/api", marketRouter);
 // Portfolio data and the paid AI endpoint require a shared secret; see auth.ts.
@@ -64,6 +69,18 @@ const PORT = Number(process.env.API_PORT ?? 4000);
 // unauthenticated-by-default API to the network. Set API_HOST=0.0.0.0 (and
 // API_KEY + WEB_ORIGIN) to intentionally expose it beyond this machine.
 const HOST = process.env.API_HOST ?? "127.0.0.1";
-app.listen(PORT, HOST, () => {
+const server = app.listen(PORT, HOST, () => {
+  quant.start();
   console.log(`OpenTerminal API listening on http://${HOST}:${PORT}`);
 });
+
+let shuttingDown = false;
+const shutdown = async () => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  const closed = new Promise<void>((resolve) => server.close(() => resolve()));
+  await Promise.all([closed, quant.stop()]);
+  db.close();
+};
+process.once("SIGINT", () => { void shutdown(); });
+process.once("SIGTERM", () => { void shutdown(); });

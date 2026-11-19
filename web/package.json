@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit --incremental false",
-    "test": "vitest run lib/vela app/api/vela"
+    "test": "vitest run"
   },
   "dependencies": {
     "@luxalgo/vela": "^0.9.0",
@@ -26,6 +26,9 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.0",
+    "jsdom": "^26.1.0",
+    "vitest": "^4.1.12",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/d3": "^7.4.3",
     "@types/node": "^22.10.5",
