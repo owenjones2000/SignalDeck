@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
+import { useI18n } from "../../lib/useI18n";
 
 // Direct HLS streams from each channel's own free, publicly reachable CDN —
 // no YouTube involved, so no embed/consent-wall restrictions. Verified live.
@@ -14,6 +15,7 @@ const CHANNELS = [
 ] as const;
 
 export default function TvWidget() {
+  const { t } = useI18n();
   const [channel, setChannel] = useState<(typeof CHANNELS)[number]>(CHANNELS[0]);
   const [error, setError] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -31,14 +33,14 @@ export default function TvWidget() {
         video.play().catch(() => {});
       });
       hls.on(Hls.Events.ERROR, (_evt, data) => {
-        if (data.fatal) setError(`Stream unavailable right now (${data.details}). Try another channel.`);
+        if (data.fatal) setError(data.details);
       });
       return () => hls.destroy();
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = channel.url;
       video.play().catch(() => {});
     } else {
-      setError("Your browser doesn't support HLS playback.");
+      setError("unsupported");
     }
   }, [channel]);
 
@@ -59,7 +61,7 @@ export default function TvWidget() {
         <video ref={videoRef} className="w-full h-full" autoPlay muted controls playsInline />
         {error && (
           <div className="absolute inset-0 flex items-center justify-center p-4 text-center dim bg-black">
-            {error}
+            {error === "unsupported" ? t("Your browser doesn't support HLS playback.") : t("Stream unavailable right now ({detail}). Try another channel.", { detail: error })}
           </div>
         )}
       </div>

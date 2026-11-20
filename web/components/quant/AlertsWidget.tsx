@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "../../lib/useI18n";
+
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fmt } from "../../lib/api";
@@ -13,6 +15,7 @@ const deliveryStates: Record<string, string> = { pending: "待发送", sending: 
 type ScanResult = { signals: { code: string; key: string }[]; failures: { code: string; error: string }[] };
 
 export default function AlertsWidget() {
+    const { t, text: translateText } = useI18n();
     const client = useQueryClient();
     const [name, setName] = useState("");
     const [codes, setCodes] = useState("");
@@ -45,34 +48,34 @@ export default function AlertsWidget() {
                 create.mutate({ name: name.trim(), codes: parseCodes(codes), signal, enabled: true, interval_minutes: interval, channel });
             } catch (err) { setError(err); }
         }}>
-            <Field label="提醒名称"><input aria-label="提醒名称" required maxLength={100} value={name} onChange={(event) => setName(event.target.value)} /></Field>
-            <Field label="提醒代码"><input aria-label="提醒代码" required placeholder="000001,600000" value={codes} onChange={(event) => setCodes(event.target.value)} /></Field>
-            <Field label="提醒信号"><select aria-label="提醒信号" value={signal} onChange={(event) => setSignal(event.target.value)}>{Object.entries(signals).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></Field>
-            <Field label="扫描间隔（分钟）"><input aria-label="扫描间隔（分钟）" type="number" required min={1} max={1440} step={1} value={interval} onChange={(event) => setInterval(Number(event.target.value))} /></Field>
-            <Field label="通知渠道"><select aria-label="通知渠道" value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>{Object.entries(channels).map(([key, label]) => <option key={key} value={key} disabled={!status.data?.channels[key as Channel]}>{label}{status.data?.channels[key as Channel] ? "" : "（未配置）"}</option>)}</select></Field>
-            <button className="term-btn" disabled={create.isPending || !status.data?.channels[channel]}>创建提醒</button>
+            <Field label={t("提醒名称")}><input aria-label={t("提醒名称")} required maxLength={100} value={name} onChange={(event) => setName(event.target.value)} /></Field>
+            <Field label={t("提醒代码")}><input aria-label={t("提醒代码")} required placeholder="000001,600000" value={codes} onChange={(event) => setCodes(event.target.value)} /></Field>
+            <Field label={t("提醒信号")}><select aria-label={t("提醒信号")} value={signal} onChange={(event) => setSignal(event.target.value)}>{Object.entries(signals).map(([key, label]) => <option key={key} value={key}>{translateText(label)}</option>)}</select></Field>
+            <Field label={t("扫描间隔（分钟）")}><input aria-label={t("扫描间隔（分钟）")} type="number" required min={1} max={1440} step={1} value={interval} onChange={(event) => setInterval(Number(event.target.value))} /></Field>
+            <Field label={t("通知渠道")}><select aria-label={t("通知渠道")} value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>{Object.entries(channels).map(([key, label]) => <option key={key} value={key} disabled={!status.data?.channels[key as Channel]}>{translateText(label)}{status.data?.channels[key as Channel] ? "" : t("（未配置）")}</option>)}</select></Field>
+            <button className="term-btn" disabled={create.isPending || !status.data?.channels[channel]}>{t("创建提醒")}</button>
         </form>
-        <p className="dim">自动扫描受交易时段限制；试扫可手动执行，仅命中对应信号才发送，重复事件去重。</p>
+        <p className="dim">{t("自动扫描受交易时段限制；试扫可手动执行，仅命中对应信号才发送，重复事件去重。")}</p>
         <ErrorMessage error={error ?? create.error ?? action.error} />
-        {scan && <div role="status"><p className="amber">试扫完成：{matching} 个匹配信号；实际投递结果见通知历史</p>{scan.failures.map((failure) => <p key={failure.code} className="quant-error">{failure.code} · {failure.error}</p>)}</div>}
-        <section className="quant-section" aria-label="提醒规则">
-            <div className="flex justify-between"><h3 className="amber">提醒规则</h3><button className="term-btn" disabled={alerts.isFetching} onClick={() => alerts.refetch()}>刷新提醒</button></div>
+        {scan && <div role="status"><p className="amber">{t("试扫完成：")}{matching} {t("个匹配信号；实际投递结果见通知历史")}</p>{scan.failures.map((failure) => <p key={failure.code} className="quant-error">{failure.code} · {failure.error}</p>)}</div>}
+        <section className="quant-section" aria-label={t("提醒规则")}>
+            <div className="flex justify-between"><h3 className="amber">{t("提醒规则")}</h3><button className="term-btn" disabled={alerts.isFetching} onClick={() => alerts.refetch()}>{t("刷新提醒")}</button></div>
             <ErrorMessage error={alerts.error} />
-            {alerts.isPending && <p role="status">加载提醒…</p>}
-            {alerts.isSuccess && alerts.data.length === 0 && <p className="dim">暂无提醒规则</p>}
-            <div className="quant-table"><table className="data-table"><thead><tr><th>名称 / 代码</th><th>信号 / 渠道</th><th>状态 / 下次扫描</th><th>操作</th></tr></thead><tbody>{alerts.data?.map((alert) => <tr key={alert.id}>
-                <td>{alert.name}<br /><span className="dim">{alert.codes.join(",")}</span></td><td>{signals[alert.signal] ?? alert.signal}<br /><span className="dim">{channels[alert.channel]} / {alert.interval_minutes}分钟</span></td>
-                <td><span className={alert.enabled ? "up" : "dim"}>{alert.enabled ? "启用" : "暂停"}</span><br />{alert.next_scan_at}{alert.last_error && <p className="down">{alert.last_error}</p>}</td>
-                <td>{(["toggle", "test", "delete"] as const).map((kind) => { const label = kind === "toggle" ? alert.enabled ? "暂停" : "启用" : kind === "test" ? "试扫" : "删除"; return <button key={kind} className="term-btn" disabled={action.isPending} aria-label={`${label}提醒 ${alert.name}`} onClick={() => action.mutate({ alert, kind })}>{label}</button>; })}</td>
+            {alerts.isPending && <p role="status">{t("加载提醒…")}</p>}
+            {alerts.isSuccess && alerts.data.length === 0 && <p className="dim">{t("暂无提醒规则")}</p>}
+            <div className="quant-table"><table className="data-table"><thead><tr><th>{t("名称 / 代码")}</th><th>{t("信号 / 渠道")}</th><th>{t("状态 / 下次扫描")}</th><th>{t("操作")}</th></tr></thead><tbody>{alerts.data?.map((alert) => <tr key={alert.id}>
+                <td>{alert.name}<br /><span className="dim">{alert.codes.join(",")}</span></td><td>{translateText(signals[alert.signal] ?? alert.signal)}<br /><span className="dim">{translateText(channels[alert.channel])} / {alert.interval_minutes}{t("分钟")}</span></td>
+                <td><span className={alert.enabled ? "up" : "dim"}>{alert.enabled ? t("启用") : t("暂停")}</span><br />{alert.next_scan_at}{alert.last_error && <p className="down">{alert.last_error}</p>}</td>
+                <td>{(["toggle", "test", "delete"] as const).map((kind) => { const label = kind === "toggle" ? alert.enabled ? "暂停" : "启用" : kind === "test" ? "试扫" : "删除"; return <button key={kind} className="term-btn" disabled={action.isPending} aria-label={t("{action}提醒 {name}", { action: translateText(label), name: alert.name })} onClick={() => action.mutate({ alert, kind })}>{translateText(label)}</button>; })}</td>
             </tr>)}</tbody></table></div>
         </section>
-        <section className="quant-section" aria-label="通知历史">
-            <div className="flex justify-between"><h3 className="amber">通知历史 / 最近500条</h3><button className="term-btn" disabled={history.isFetching} onClick={() => history.refetch()}>刷新通知</button></div>
+        <section className="quant-section" aria-label={t("通知历史")}>
+            <div className="flex justify-between"><h3 className="amber">{t("通知历史 / 最近500条")}</h3><button className="term-btn" disabled={history.isFetching} onClick={() => history.refetch()}>{t("刷新通知")}</button></div>
             <ErrorMessage error={history.error} />
-            {history.isPending && <p role="status">加载通知…</p>}
-            {history.isSuccess && history.data.length === 0 && <p className="dim">暂无通知历史</p>}
-            <div className="quant-table"><table className="data-table"><thead><tr><th>提醒 / 信号</th><th>代码 / 价格</th><th>渠道 / 状态</th><th>尝试 / 时间</th><th>错误</th></tr></thead><tbody>{history.data?.map((item) => <tr key={item.id}>
-                <td>{item.payload.alert_name}<br /><span className="dim">{item.payload.name} / {item.payload.date}</span></td><td>{item.payload.code}<br />{fmt(item.payload.price)}</td><td>{channels[item.channel]}<br /><span className={item.status === "failed" ? "down" : item.status === "sent" ? "up" : "amber"}>{deliveryStates[item.status] ?? item.status}</span></td><td>{item.attempts}次 / {item.created_at}<br /><span className="dim">{item.sent_at ? `送达 ${item.sent_at}` : `计划 ${item.next_attempt_at}`}</span></td><td className="down">{item.error ?? "—"}</td>
+            {history.isPending && <p role="status">{t("加载通知…")}</p>}
+            {history.isSuccess && history.data.length === 0 && <p className="dim">{t("暂无通知历史")}</p>}
+            <div className="quant-table"><table className="data-table"><thead><tr><th>{t("提醒 / 信号")}</th><th>{t("代码 / 价格")}</th><th>{t("渠道 / 状态")}</th><th>{t("尝试 / 时间")}</th><th>{t("错误")}</th></tr></thead><tbody>{history.data?.map((item) => <tr key={item.id}>
+                <td>{item.payload.alert_name}<br /><span className="dim">{translateText(item.payload.name)} / {item.payload.date}</span></td><td>{item.payload.code}<br />{fmt(item.payload.price)}</td><td>{translateText(channels[item.channel])}<br /><span className={item.status === "failed" ? "down" : item.status === "sent" ? "up" : "amber"}>{translateText(deliveryStates[item.status] ?? item.status)}</span></td><td>{item.attempts}{t("次 /")} {item.created_at}<br /><span className="dim">{item.sent_at ? t("送达 {time}", { time: item.sent_at }) : t("计划 {time}", { time: item.next_attempt_at })}</span></td><td className="down">{item.error ?? "—"}</td>
             </tr>)}</tbody></table></div>
         </section>
     </div>;

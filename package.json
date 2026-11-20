@@ -10,6 +10,7 @@
   },
   "scripts": {
     "setup:quant": "node scripts/quant.mjs setup",
+    "setup:longbridge": "node scripts/quant.mjs setup-longbridge",
     "dev:quant": "node --env-file-if-exists=.env --env-file-if-exists=.env.local scripts/quant.mjs dev",
     "dev:all": "node --env-file-if-exists=.env --env-file-if-exists=.env.local node_modules/concurrently/dist/bin/concurrently.js -k -n api,web,quant -c yellow,cyan,green \"npm run dev -w server\" \"npm run dev -w web\" \"npm run dev:quant\"",
     "dev": "node --env-file-if-exists=.env --env-file-if-exists=.env.local node_modules/concurrently/dist/bin/concurrently.js -k -n api,web -c yellow,cyan \"npm run dev -w server\" \"npm run dev -w web\"",
@@ -21,6 +22,7 @@
     "lint": "npm run lint -w web"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "yaml": "2.8.2"
   }
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "../../lib/useI18n";
+
 import { useQuery } from "@tanstack/react-query";
 import { Fragment, useMemo, useState } from "react";
 import { apiGet, fmt, pctClass } from "../../lib/api";
@@ -30,20 +32,21 @@ const IMPACT_CLASS: Record<EconEvent["impact"], string> = {
   Holiday: "dim",
 };
 
-const TIMEZONES: Array<{ label: string; zone: string | undefined }> = [
-  { label: "Local", zone: undefined },
-  { label: "UTC", zone: "UTC" },
-  { label: "New York", zone: "America/New_York" },
-  { label: "Chicago", zone: "America/Chicago" },
-  { label: "London", zone: "Europe/London" },
-  { label: "Frankfurt", zone: "Europe/Berlin" },
-  { label: "Tokyo", zone: "Asia/Tokyo" },
-  { label: "Sydney", zone: "Australia/Sydney" },
+const TIMEZONES: Array<{ id: string; label: string; zone: string | undefined }> = [
+  { id: "local", label: "Local", zone: undefined },
+  { id: "UTC", label: "UTC", zone: "UTC" },
+  { id: "America/New_York", label: "New York", zone: "America/New_York" },
+  { id: "America/Chicago", label: "Chicago", zone: "America/Chicago" },
+  { id: "Europe/London", label: "London", zone: "Europe/London" },
+  { id: "Europe/Berlin", label: "Frankfurt", zone: "Europe/Berlin" },
+  { id: "Asia/Tokyo", label: "Tokyo", zone: "Asia/Tokyo" },
+  { id: "Australia/Sydney", label: "Sydney", zone: "Australia/Sydney" },
 ];
 
 function EconomicTab() {
+    const { t, text: translateText, locale } = useI18n();
   const [minImpact, setMinImpact] = useState<"all" | "medium">("medium");
-  const [tz, setTz] = useState<string>("Local");
+  const [tz, setTz] = useState<string>("local");
 
   const { data = [], isLoading, error } = useQuery({
     queryKey: ["econ-calendar"],
@@ -56,19 +59,19 @@ function EconomicTab() {
     [data, minImpact]
   );
 
-  if (error) return <div className="p-2 down">Error: {(error as Error).message}</div>;
-  if (isLoading) return <div className="p-2 dim">Loading calendar…</div>;
+  if (error) return <div className="p-2 down">{t("Error:")} {(error as Error).message}</div>;
+  if (isLoading) return <div className="p-2 dim">{t("Loading calendar…")}</div>;
 
-  const zone = TIMEZONES.find((t) => t.label === tz)?.zone;
+  const zone = TIMEZONES.find((t) => t.id === tz)?.zone;
 
   return (
     <div>
       <div className="flex gap-1 p-1 items-center flex-wrap">
         <button className={`term-btn ${minImpact === "medium" ? "active" : ""}`} onClick={() => setMinImpact("medium")}>
-          HIGH+MED
+          {t("HIGH+MED")}
         </button>
         <button className={`term-btn ${minImpact === "all" ? "active" : ""}`} onClick={() => setMinImpact("all")}>
-          ALL
+          {t("ALL")}
         </button>
         <span className="w-2" />
         <select
@@ -77,8 +80,8 @@ function EconomicTab() {
           className="term-btn !py-0.5 bg-[var(--panel)] cursor-pointer"
         >
           {TIMEZONES.map((t) => (
-            <option key={t.label} value={t.label}>
-              {t.label}
+            <option key={t.id} value={t.id}>
+              {translateText(t.label)}
             </option>
           ))}
         </select>
@@ -86,19 +89,19 @@ function EconomicTab() {
       <table className="data-table">
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Ccy</th>
-            <th>Event</th>
-            <th>Forecast</th>
-            <th>Previous</th>
-            <th>Actual</th>
+            <th>{t("Date")}</th>
+            <th>{t("Ccy")}</th>
+            <th>{t("Event")}</th>
+            <th>{t("Forecast")}</th>
+            <th>{t("Previous")}</th>
+            <th>{t("Actual")}</th>
           </tr>
         </thead>
         <tbody>
           {events.map((e, i) => (
             <tr key={`${e.title}-${e.date}-${i}`}>
               <td className="!text-left dim whitespace-nowrap">
-                {new Date(e.date).toLocaleString(undefined, {
+                {new Date(e.date).toLocaleString(locale, {
                   timeZone: zone,
                   month: "short",
                   day: "2-digit",
@@ -116,7 +119,7 @@ function EconomicTab() {
           ))}
         </tbody>
       </table>
-      {events.length === 0 && <div className="p-3 dim">No events in this window.</div>}
+      {events.length === 0 && <div className="p-3 dim">{t("No events in this window.")}</div>}
     </div>
   );
 }
@@ -141,26 +144,27 @@ function surpriseClass(row: EarningsHistoryRow): string {
 }
 
 function EarningsHistoryRows({ symbol }: { symbol: string }) {
+    const { t } = useI18n();
   const { data = [], isLoading, error } = useQuery({
     queryKey: ["earnings-history", symbol],
     queryFn: () => apiGet<EarningsHistoryRow[]>(`/api/earnings-history/${encodeURIComponent(symbol)}`),
     staleTime: 3_600_000,
   });
 
-  if (error) return <div className="p-2 down">Error: {(error as Error).message}</div>;
-  if (isLoading) return <div className="p-2 dim">Loading history for {symbol}…</div>;
-  if (data.length === 0) return <div className="p-2 dim">No earnings history for {symbol}.</div>;
+  if (error) return <div className="p-2 down">{t("Error:")} {(error as Error).message}</div>;
+  if (isLoading) return <div className="p-2 dim">{t("Loading history for")} {symbol}…</div>;
+  if (data.length === 0) return <div className="p-2 dim">{t("No earnings history for")} {symbol}.</div>;
 
   return (
     <table className="data-table">
       <thead>
         <tr>
-          <th>Quarter</th>
-          <th>Reported</th>
-          <th>Forecast</th>
-          <th>Actual</th>
-          <th>Surprise</th>
-          <th>Day After</th>
+          <th>{t("Quarter")}</th>
+          <th>{t("Reported")}</th>
+          <th>{t("Forecast")}</th>
+          <th>{t("Actual")}</th>
+          <th>{t("Surprise")}</th>
+          <th>{t("Day After")}</th>
         </tr>
       </thead>
       <tbody>
@@ -182,6 +186,7 @@ function EarningsHistoryRows({ symbol }: { symbol: string }) {
 }
 
 function EarningsTab() {
+    const { t } = useI18n();
   const watchlist = useTerminal((s) => s.watchlist);
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -203,17 +208,17 @@ function EarningsTab() {
     [data]
   );
 
-  if (error) return <div className="p-2 down">Error: {(error as Error).message}</div>;
-  if (isLoading) return <div className="p-2 dim">Loading earnings…</div>;
+  if (error) return <div className="p-2 down">{t("Error:")} {(error as Error).message}</div>;
+  if (isLoading) return <div className="p-2 dim">{t("Loading earnings…")}</div>;
 
   return (
     <table className="data-table">
       <thead>
         <tr>
-          <th>Sym</th>
-          <th>Last Earnings</th>
-          <th>Next Earnings</th>
-          <th>EPS Est.</th>
+          <th>{t("Sym")}</th>
+          <th>{t("Last Earnings")}</th>
+          <th>{t("Next Earnings")}</th>
+          <th>{t("EPS Est.")}</th>
         </tr>
       </thead>
       <tbody>
@@ -222,7 +227,7 @@ function EarningsTab() {
             <tr
               onClick={() => setExpanded(expanded === e.symbol ? null : e.symbol)}
               className="cursor-pointer"
-              title="Click for earnings history"
+              title={t("Click for earnings history")}
             >
               <td className="!text-left text-[var(--text)] font-bold underline decoration-1">{e.symbol}</td>
               <td className="dim">{fmtDate(e.lastEarningsDate)}</td>
@@ -241,7 +246,7 @@ function EarningsTab() {
         {sorted.length === 0 && (
           <tr>
             <td colSpan={4} className="dim p-3">
-              No upcoming earnings data for your watchlist.
+              {t("No upcoming earnings data for your watchlist.")}
             </td>
           </tr>
         )}
@@ -251,16 +256,17 @@ function EarningsTab() {
 }
 
 export default function CalendarWidget() {
+    const { t } = useI18n();
   const [tab, setTab] = useState<"econ" | "earnings">("econ");
 
   return (
     <div>
       <div className="flex gap-1 p-1">
         <button className={`term-btn ${tab === "econ" ? "active" : ""}`} onClick={() => setTab("econ")}>
-          ECONOMIC
+          {t("ECONOMIC")}
         </button>
         <button className={`term-btn ${tab === "earnings" ? "active" : ""}`} onClick={() => setTab("earnings")}>
-          EARNINGS
+          {t("EARNINGS")}
         </button>
       </div>
       {tab === "econ" ? <EconomicTab /> : <EarningsTab />}

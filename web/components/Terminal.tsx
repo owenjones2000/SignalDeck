@@ -6,10 +6,15 @@ import Sidebar from "./Sidebar";
 import Workspace from "./Workspace";
 import CommandPalette from "./CommandPalette";
 import { useTerminal } from "../store/terminal";
+import { useLocale } from "../store/locale";
 
 export default function Terminal() {
   const setCommandOpen = useTerminal((s) => s.setCommandOpen);
   const addWidget = useTerminal((s) => s.addWidget);
+  const sidebarCollapsed = useTerminal((s) => s.sidebarCollapsed);
+  const locale = useLocale((s) => s.locale);
+
+  useEffect(() => { document.documentElement.lang = locale; }, [locale]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -45,8 +50,8 @@ export default function Terminal() {
     <div className="flex flex-col h-screen">
       <TopBar />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-auto">
+        {!sidebarCollapsed && <Sidebar />}
+        <main className="flex-1 min-w-0 min-h-0 overflow-auto">
           <Workspace />
         </main>
       </div>

@@ -20,6 +20,7 @@ export type WidgetType =
   | "insider"
   | "tv"
   | "recap"
+  | "longbridge"
   | "quant-screen"
   | "quant-watch"
   | "quant-backtest"
@@ -40,6 +41,8 @@ type TerminalState = {
   layout: LayoutItem[];
   watchlist: string[];
   commandOpen: boolean;
+  sidebarCollapsed: boolean;
+  toggleSidebar: () => void;
   setActiveSymbol: (s: string) => void;
   setCommandOpen: (open: boolean) => void;
   addWidget: (type: WidgetType, symbol?: string) => void;
@@ -84,6 +87,7 @@ const SIZE_BY_TYPE: Record<WidgetType, { w: number; h: number }> = {
   insider: { w: 7, h: 9 },
   tv: { w: 6, h: 11 },
   recap: { w: 5, h: 12 },
+  longbridge: { w: 12, h: 10 },
   "quant-screen": { w: 8, h: 14 },
   "quant-watch": { w: 8, h: 16 },
   "quant-backtest": { w: 8, h: 18 },
@@ -98,6 +102,8 @@ export const useTerminal = create<TerminalState>()(
       layout: DEFAULT_LAYOUT,
       watchlist: ["AAPL", "MSFT", "NVDA", "TSLA", "AMZN", "GOOGL", "META", "SPY"],
       commandOpen: false,
+      sidebarCollapsed: false,
+      toggleSidebar: () => set((st) => ({ sidebarCollapsed: !st.sidebarCollapsed })),
       setActiveSymbol: (s) => {
         const sym = normalizeSymbol(s);
         if (sym) set({ activeSymbol: sym });
@@ -109,7 +115,7 @@ export const useTerminal = create<TerminalState>()(
           const size = SIZE_BY_TYPE[type];
           const maxY = st.layout.reduce((m, l) => Math.max(m, l.y + l.h), 0);
           return {
-            widgets: [...st.widgets, { id, type, symbol, linked: !symbol && !type.startsWith("quant-") }],
+            widgets: [...st.widgets, { id, type, symbol, linked: !symbol && type !== "longbridge" && !type.startsWith("quant-") }],
             layout: [...st.layout, { i: id, x: 0, y: maxY, ...size }],
           };
         }),

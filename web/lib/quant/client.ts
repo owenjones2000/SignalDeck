@@ -1,3 +1,10 @@
+export class QuantRequestError extends Error {
+    constructor(public readonly status: number, public readonly detail: string) {
+        const prefix = status === 401 || status === 403 ? "鉴权失败" : "请求失败";
+        super(`${prefix}（HTTP ${status}）：${detail}`);
+    }
+}
+
 export async function quantRequest<T>(path: string, method = "GET", body?: unknown): Promise<T> {
     const response = await fetch(`/api/quant${path}`, {
         method,
@@ -8,9 +15,7 @@ export async function quantRequest<T>(path: string, method = "GET", body?: unkno
     if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         const detail = typeof data.error === "string" ? data.error : `HTTP ${response.status}`;
-        const prefix = response.status === 401 || response.status === 403
-            ? `鉴权失败（HTTP ${response.status}）：` : `请求失败（HTTP ${response.status}）：`;
-        throw new Error(prefix + detail);
+        throw new QuantRequestError(response.status, detail);
     }
     if (response.status === 204) return undefined as T;
     return response.json();

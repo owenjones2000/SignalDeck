@@ -6,16 +6,37 @@ import { resolve } from "node:path";
 export const root = fileURLToPath(new URL("../", import.meta.url));
 
 export function pythonPath(platform = process.platform) {
-  return resolve(root, "quant", ".venv", platform === "win32" ? "Scripts/python.exe" : "bin/python");
+  return resolve(
+    root,
+    "quant",
+    ".venv",
+    platform === "win32" ? "Scripts/python.exe" : "bin/python",
+  );
 }
 
-export function commands(action, env = process.env, platform = process.platform) {
+export function commands(
+  action,
+  env = process.env,
+  platform = process.platform,
+) {
   const python = pythonPath(platform);
   const quant = resolve(root, "quant");
+  if (action === "setup-longbridge") {
+    return [
+      ...commands("setup", env, platform),
+      [python, ["-m", "pip", "install", "--no-deps", "longbridge==5.4.0"]],
+    ];
+  }
   if (action === "setup") {
     return [
-      [env.PYTHON ?? (platform === "win32" ? "python" : "python3"), ["-m", "venv", resolve(quant, ".venv")]],
-      [python, ["-m", "pip", "install", "-r", resolve(quant, "requirements.lock")]],
+      [
+        env.PYTHON ?? (platform === "win32" ? "python" : "python3"),
+        ["-m", "venv", resolve(quant, ".venv")],
+      ],
+      [
+        python,
+        ["-m", "pip", "install", "-r", resolve(quant, "requirements.lock")],
+      ],
       [python, ["-m", "pip", "install", "--no-deps", "-e", quant]],
     ];
   }
@@ -25,7 +46,10 @@ export function commands(action, env = process.env, platform = process.platform)
 }
 
 async function run(action) {
-  if (action !== "setup" && !existsSync(pythonPath())) {
+  if (
+    !["setup", "setup-longbridge"].includes(action) &&
+    !existsSync(pythonPath())
+  ) {
     throw new Error("quant 虚拟环境不存在，请先执行 npm run setup:quant");
   }
   for (const [program, args] of commands(action)) {
@@ -40,7 +64,10 @@ async function run(action) {
         process.removeListener("SIGINT", interrupt);
         process.removeListener("SIGTERM", terminate);
       };
-      child.once("error", (error) => { cleanup(); reject(error); });
+      child.once("error", (error) => {
+        cleanup();
+        reject(error);
+      });
       child.once("exit", (code, signal) => {
         cleanup();
         if (signal) {
@@ -55,7 +82,10 @@ async function run(action) {
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+) {
   run(process.argv[2]).catch((error) => {
     console.error(error.message);
     process.exitCode ??= 1;

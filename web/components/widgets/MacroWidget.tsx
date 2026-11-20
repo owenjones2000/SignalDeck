@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "../../lib/useI18n";
+
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { apiGet, fmt, pctClass } from "../../lib/api";
@@ -16,6 +18,7 @@ type MacroData = {
 };
 
 export default function MacroWidget() {
+    const { t } = useI18n();
   const setActiveSymbol = useTerminal((s) => s.setActiveSymbol);
   const [region, setRegion] = useState<"us" | "eu">("us");
   const { data, error } = useQuery({
@@ -34,9 +37,9 @@ export default function MacroWidget() {
         ))}
       </div>
       {error ? (
-        <div className="p-2 down">Error: {(error as Error).message}</div>
+        <div className="p-2 down">{t("Error:")} {(error as Error).message}</div>
       ) : !data ? (
-        <div className="p-2 dim">Loading macro data…</div>
+        <div className="p-2 dim">{t("Loading macro data…")}</div>
       ) : (
         <MacroBody data={data} region={region} setActiveSymbol={setActiveSymbol} />
       )}
@@ -53,10 +56,11 @@ function MacroBody({
   region: "us" | "eu";
   setActiveSymbol: (s: string) => void;
 }) {
+    const { t } = useI18n();
   return (
     <div>
       <div className="px-2 py-1 dim text-[10px] uppercase flex justify-between">
-        <span>{region === "eu" ? "Euro Area AAA Yield Curve" : "US Treasury Yield Curve"}</span>
+        <span>{region === "eu" ? t("Euro Area AAA Yield Curve") : t("US Treasury Yield Curve")}</span>
         {region === "us" && data.vix !== null && (
           <span className="cursor-pointer" onClick={() => setActiveSymbol("^VIX")}>
             VIX <Flash value={data.vix} className="amber">{fmt(data.vix, 2)}</Flash>
@@ -65,11 +69,11 @@ function MacroBody({
         {region === "eu" && (data.policyRate !== null || data.inflation !== null) && (
           <span>
             {data.policyRate !== null && (
-              <>ECB depo <Flash value={data.policyRate} className="amber">{fmt(data.policyRate, 2)}%</Flash></>
+              <>{t("ECB depo")} <Flash value={data.policyRate} className="amber">{fmt(data.policyRate, 2)}%</Flash></>
             )}
             {data.inflation !== null && (
               <>
-                {" "}HICP <Flash value={data.inflation} className="amber">{fmt(data.inflation, 1)}%</Flash>
+                {" "}{t("HICP")} <Flash value={data.inflation} className="amber">{fmt(data.inflation, 1)}%</Flash>
               </>
             )}
           </span>
@@ -90,7 +94,7 @@ function MacroBody({
       </div>
       <table className="data-table">
         <thead>
-          <tr><th>Index / Commodity</th><th>Last</th><th>Chg%</th></tr>
+          <tr><th>{t("Index / Commodity")}</th><th>{t("Last")}</th><th>{t("Chg%")}</th></tr>
         </thead>
         <tbody>
           {data.indexes.map((q) => (

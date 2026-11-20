@@ -10,6 +10,7 @@ import { velaRouter } from "./routes/vela.js";
 import { createQuantRouter } from "./routes/quant.js";
 import { createQuantRuntime } from "./quant/runtime.js";
 import { db } from "./db.js";
+import { createLongbridgeGateway } from "./routes/longbridge.js";
 
 const app = express();
 
@@ -43,6 +44,8 @@ app.use(express.json());
 // this deployment's IP rate-limited or banned by Nasdaq/Yahoo/Stooq/SEC.
 app.use("/api", rateLimit({ windowMs: 60_000, max: 240 }));
 const quant = createQuantRuntime(db);
+const longbridge = createLongbridgeGateway();
+app.use("/api/longbridge", longbridge.router);
 app.use("/api/quant", createQuantRouter(quant));
 app.use("/api/vela", velaRouter);
 app.use("/api", marketRouter);
@@ -78,6 +81,7 @@ let shuttingDown = false;
 const shutdown = async () => {
   if (shuttingDown) return;
   shuttingDown = true;
+  longbridge.close();
   const closed = new Promise<void>((resolve) => server.close(() => resolve()));
   await Promise.all([closed, quant.stop()]);
   db.close();

@@ -12,6 +12,11 @@
 .env.local
 data
 docs
+!docs/
+docs/*
+!docs/licenses/
+docs/licenses/*
+!docs/licenses/longbridge-MIT.txt
 config/trading-calendar.json
 web/package-lock.json
 *.log

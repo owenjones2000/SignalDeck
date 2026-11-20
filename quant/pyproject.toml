@@ -17,6 +17,7 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=8,<10", "httpx>=0.28,<1"]
+longbridge = ["longbridge>=5.4,<6"]
 
 [project.scripts]
 signaldeck-quant = "signaldeck_quant.__main__:main"

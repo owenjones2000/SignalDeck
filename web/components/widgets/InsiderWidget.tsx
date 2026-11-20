@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "../../lib/useI18n";
+
 import { useQuery } from "@tanstack/react-query";
 import { apiGet, fmt, fmtBig } from "../../lib/api";
 import { useWidgetSymbol, type WidgetInstance } from "../../store/terminal";
@@ -33,6 +35,7 @@ const CODE_LABEL: Record<string, string> = {
 };
 
 export default function InsiderWidget({ widget }: { widget: WidgetInstance }) {
+    const { t } = useI18n();
   const symbol = useWidgetSymbol(widget);
   const { data = [], isLoading, error } = useQuery({
     queryKey: ["insider", symbol],
@@ -40,22 +43,22 @@ export default function InsiderWidget({ widget }: { widget: WidgetInstance }) {
     staleTime: 3_600_000,
   });
 
-  if (error) return <div className="p-2 down">Error: {(error as Error).message}</div>;
-  if (isLoading) return <div className="p-2 dim">Loading insider transactions for {symbol}…</div>;
+  if (error) return <div className="p-2 down">{t("Error:")} {(error as Error).message}</div>;
+  if (isLoading) return <div className="p-2 dim">{t("Loading insider transactions for")} {symbol}…</div>;
 
   return (
     <div>
       <table className="data-table">
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Insider</th>
-            <th>Title</th>
-            <th>Type</th>
-            <th>Shares</th>
-            <th>Price</th>
-            <th>Value</th>
-            <th>Owned After</th>
+            <th>{t("Date")}</th>
+            <th>{t("Insider")}</th>
+            <th>{t("Title")}</th>
+            <th>{t("Type")}</th>
+            <th>{t("Shares")}</th>
+            <th>{t("Price")}</th>
+            <th>{t("Value")}</th>
+            <th>{t("Owned After")}</th>
           </tr>
         </thead>
         <tbody>
@@ -78,7 +81,7 @@ export default function InsiderWidget({ widget }: { widget: WidgetInstance }) {
           {data.length === 0 && (
             <tr>
               <td colSpan={8} className="dim p-3">
-                No recent open-market insider transactions for {symbol}.
+                {t("No recent open-market insider transactions for")} {symbol}.
               </td>
             </tr>
           )}

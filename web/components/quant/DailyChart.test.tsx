@@ -28,7 +28,7 @@ it("uses the existing Vela adapter with daily candles and Shanghai close timesta
     ]));
     expect(chart.create).toHaveBeenCalledWith(container, expect.any(Function));
     expect(chart.setStyle).toHaveBeenCalledWith("candles");
-    expect(await screen.findByText("Vela · 1D · 1 bars · 上海收盘 15:00")).toBeTruthy();
+    expect(await screen.findByText("Vela · 1D · 1 根 K 线 · 上海收盘 15:00")).toBeTruthy();
     view.unmount();
     expect(chart.destroy).toHaveBeenCalledTimes(1);
 });

@@ -3,9 +3,14 @@ services:
     build:
       context: .
       dockerfile: quant/Dockerfile
+      args:
+        INSTALL_LONGBRIDGE: ${INSTALL_LONGBRIDGE:-false}
     environment:
       - QUANT_HOST=0.0.0.0
       - QUANT_PORT=8010
+      - LONGPORT_APP_KEY=${LONGPORT_APP_KEY:-}
+      - LONGPORT_APP_SECRET=${LONGPORT_APP_SECRET:-}
+      - LONGPORT_ACCESS_TOKEN=${LONGPORT_ACCESS_TOKEN:-}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8010/health', timeout=3)"]
       interval: 10s

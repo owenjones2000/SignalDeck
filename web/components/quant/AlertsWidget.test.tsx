@@ -1,9 +1,10 @@
-import { cleanup, fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import AlertsWidget from "./AlertsWidget";
 import { mockApi, renderQuant, status } from "./test-support";
+import { useLocale } from "../../store/locale";
 
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); useLocale.getState().setLocale("zh-CN"); });
 
 it("creates, pauses, tests and deletes alerts and shows delivery history", async () => {
     const alert = { id: "a1", name: "均线提醒", codes: ["000001"], signal: "ma_cross", enabled: true, interval_minutes: 5, channel: "local", next_scan_at: "2026-11-18T10:00:00Z", last_error: null, created_at: "2026-11-18T09:00:00Z" };
@@ -50,4 +51,24 @@ it("shows API rejection when creating an alert and keeps user input", async () =
     fireEvent.click(screen.getByRole("button", { name: "创建提醒" }));
     expect((await screen.findByRole("alert")).textContent).toContain("Alert limit is 100");
     expect((screen.getByLabelText("提醒代码") as HTMLInputElement).value).toBe("000001");
+});
+
+it("translates known notification signal names but preserves unknown names, custom alert names and errors", async () => {
+    useLocale.getState().setLocale("zh-CN");
+    const notification = { id: "n1", alert_id: "a1", channel: "local", status: "failed", attempts: 1, error: "上游原始错误", created_at: "2026-11-19T10:00:00Z", sent_at: null, next_attempt_at: "2026-11-19T10:05:00Z", payload: { code: "000001", key: "ma_cross", name: "均线金叉", type: "buy", date: "2026-11-19", price: 12, alert_name: "自定义提醒" } };
+    mockApi({
+        "GET /api/quant/status": status,
+        "GET /api/quant/alerts": [],
+        "GET /api/quant/notifications": [notification, { ...notification, id: "n2", payload: { ...notification.payload, code: "600000", key: "custom", name: "未知信号 / raw" } }],
+    });
+    renderQuant(<AlertsWidget />);
+    await screen.findByText("均线金叉 / 2026-11-19");
+    act(() => useLocale.getState().setLocale("en"));
+    const history = screen.getByRole("region", { name: "Notification history" });
+    expect(within(history).getByText("MA crossover / 2026-11-19")).toBeTruthy();
+    expect(within(history).getByText("未知信号 / raw / 2026-11-19")).toBeTruthy();
+    expect(within(history).getAllByText("自定义提醒")).toHaveLength(2);
+    expect(within(history).getAllByText("上游原始错误")).toHaveLength(2);
+    act(() => useLocale.getState().setLocale("zh-CN"));
+    expect(screen.getByText("均线金叉 / 2026-11-19")).toBeTruthy();
 });

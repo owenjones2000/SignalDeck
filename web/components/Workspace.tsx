@@ -1,7 +1,9 @@
 "use client";
 
+import { useI18n } from "../lib/useI18n";
+
 import { useEffect, useRef, useState } from "react";
-import GridLayout, { WidthProvider } from "react-grid-layout";
+import GridLayout from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
 import { normalizeSymbol } from "../lib/symbol";
@@ -21,15 +23,19 @@ import CalendarWidget from "./widgets/CalendarWidget";
 import InsiderWidget from "./widgets/InsiderWidget";
 import TvWidget from "./widgets/TvWidget";
 import RecapWidget from "./widgets/RecapWidget";
+import LongbridgeWidget from "./widgets/LongbridgeWidget";
 import WidgetErrorBoundary from "./WidgetErrorBoundary";
 import dynamic from "next/dynamic";
 
-const ScreenWidget = dynamic(() => import("./quant/ScreenWidget"), { loading: () => <p className="dim p-2">加载选股…</p> });
-const QuantWatchWidget = dynamic(() => import("./quant/WatchWidget"), { loading: () => <p className="dim p-2">加载自选…</p> });
-const BacktestWidget = dynamic(() => import("./quant/BacktestWidget"), { loading: () => <p className="dim p-2">加载回测…</p> });
-const AlertsWidget = dynamic(() => import("./quant/AlertsWidget"), { loading: () => <p className="dim p-2">加载提醒…</p> });
+function PanelLoading() {
+  const { t } = useI18n();
+  return <p className="dim p-2">{t("加载中…")}</p>;
+}
 
-const Grid = WidthProvider(GridLayout);
+const ScreenWidget = dynamic(() => import("./quant/ScreenWidget"), { loading: PanelLoading });
+const QuantWatchWidget = dynamic(() => import("./quant/WatchWidget"), { loading: PanelLoading });
+const BacktestWidget = dynamic(() => import("./quant/BacktestWidget"), { loading: PanelLoading });
+const AlertsWidget = dynamic(() => import("./quant/AlertsWidget"), { loading: PanelLoading });
 
 function WidgetBody({ widget }: { widget: WidgetInstance }) {
   switch (widget.type) {
@@ -48,6 +54,7 @@ function WidgetBody({ widget }: { widget: WidgetInstance }) {
     case "insider": return <InsiderWidget widget={widget} />;
     case "tv": return <TvWidget />;
     case "recap": return <RecapWidget />;
+    case "longbridge": return <LongbridgeWidget />;
     case "quant-screen": return <ScreenWidget />;
     case "quant-watch": return <QuantWatchWidget />;
     case "quant-backtest": return <BacktestWidget />;
@@ -56,6 +63,7 @@ function WidgetBody({ widget }: { widget: WidgetInstance }) {
 }
 
 function SymbolTag({ widget, activeSymbol }: { widget: WidgetInstance; activeSymbol: string }) {
+    const { t } = useI18n();
   const setWidgetSymbol = useTerminal((s) => s.setWidgetSymbol);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -92,7 +100,7 @@ function SymbolTag({ widget, activeSymbol }: { widget: WidgetInstance; activeSym
   return (
     <span
       className="ml-2 text-[var(--text)] cursor-pointer hover:text-[var(--amber)]"
-      title="Click to set this widget's ticker"
+      title={t("Click to set this widget's ticker")}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={() => setEditing(true)}
     >
@@ -106,42 +114,65 @@ const TITLES: Record<string, string> = {
   heatmap: "Heatmap", screener: "Screener", crypto: "Crypto",
   macro: "Macro / Indexes", options: "Option Chain", portfolio: "Portfolio", ai: "AI Assistant",
   calendar: "Calendar", insider: "Insider Transactions", tv: "Live TV", recap: "Market Recap",
+  longbridge: "长桥行情",
   "quant-screen": "量化选股 / Screen", "quant-watch": "A股自选 / Daily",
   "quant-backtest": "策略回测 / Backtest", "quant-alerts": "提醒 / Notifications",
 };
 
 export default function Workspace() {
+    const { t, text: translateText } = useI18n();
   const widgets = useTerminal((s) => s.widgets);
   const layout = useTerminal((s) => s.layout);
   const setLayout = useTerminal((s) => s.setLayout);
   const removeWidget = useTerminal((s) => s.removeWidget);
   const toggleLinked = useTerminal((s) => s.toggleLinked);
   const activeSymbol = useTerminal((s) => s.activeSymbol);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  const singleChart = widgets.length === 1 && widgets[0].type === "chart";
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    setWidth(container.clientWidth);
+    const observer = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   const symbolAware = new Set(["quote", "chart", "news", "options", "insider"]);
 
   return (
-    <Grid
+    <div ref={containerRef} className="h-full min-h-0">
+    {singleChart ? <div data-testid="single-chart" className="h-full p-1">
+      <div className="terminal-panel">
+        <div className="panel-title"><span>{translateText(TITLES.chart)}<SymbolTag widget={widgets[0]} activeSymbol={activeSymbol} /></span><span className="flex gap-2 items-center"><button title={widgets[0].linked ? t("Linked to active symbol (click to unlink)") : t("Unlinked (click to link)")} onClick={() => toggleLinked(widgets[0].id)}>⛓</button><button aria-label={t("Close chart")} onClick={() => removeWidget(widgets[0].id)}>✕</button></span></div>
+        <div className="flex-1 min-h-0 overflow-auto"><WidgetErrorBoundary name={translateText(TITLES.chart)}><WidgetBody widget={widgets[0]} /></WidgetErrorBoundary></div>
+      </div>
+    </div> : <GridLayout
       className="layout"
+      width={width}
       layout={layout}
       cols={12}
       rowHeight={30}
       margin={[4, 4]}
+      compactType={null}
       draggableHandle=".panel-title"
-      onLayoutChange={(l) => setLayout(l.map(({ i, x, y, w, h }) => ({ i, x, y, w, h })))}
+      onDragStop={(l) => setLayout(l.map(({ i, x, y, w, h }) => ({ i, x, y, w, h })))}
+      onResizeStop={(l) => setLayout(l.map(({ i, x, y, w, h }) => ({ i, x, y, w, h })))}
     >
       {widgets.map((w) => (
         <div key={w.id}>
           <div className="terminal-panel">
             <div className="panel-title">
               <span>
-                {TITLES[w.type]}
+                {translateText(TITLES[w.type])}
                 {symbolAware.has(w.type) && <SymbolTag widget={w} activeSymbol={activeSymbol} />}
               </span>
               <span className="flex gap-2 items-center">
                 {symbolAware.has(w.type) && (
                   <button
-                    title={w.linked ? "Linked to active symbol (click to unlink)" : "Unlinked (click to link)"}
+                    title={w.linked ? t("Linked to active symbol (click to unlink)") : t("Unlinked (click to link)")}
                     onMouseDown={(e) => e.stopPropagation()}
                     onClick={() => toggleLinked(w.id)}
                     className={w.linked ? "text-[var(--amber)]" : "dim"}
@@ -150,6 +181,7 @@ export default function Workspace() {
                   </button>
                 )}
                 <button
+                  aria-label={t("Close panel")}
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={() => removeWidget(w.id)}
                   className="dim hover:text-[var(--down)]"
@@ -159,13 +191,14 @@ export default function Workspace() {
               </span>
             </div>
             <div className="flex-1 overflow-auto min-h-0">
-              <WidgetErrorBoundary name={TITLES[w.type]}>
+              <WidgetErrorBoundary name={translateText(TITLES[w.type])}>
                 <WidgetBody widget={w} />
               </WidgetErrorBoundary>
             </div>
           </div>
         </div>
       ))}
-    </Grid>
+    </GridLayout>}
+    </div>
   );
 }

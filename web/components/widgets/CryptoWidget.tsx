@@ -1,5 +1,7 @@
 "use client";
 
+import { useI18n } from "../../lib/useI18n";
+
 import { useQuery } from "@tanstack/react-query";
 import { apiGet, fmt, fmtBig, pctClass } from "../../lib/api";
 import Flash from "../Flash";
@@ -36,6 +38,7 @@ function Sparkline({ data }: { data: number[] }) {
 }
 
 export default function CryptoWidget() {
+    const { t } = useI18n();
   const setActiveSymbol = useTerminal((s) => s.setActiveSymbol);
   const { data = [], error } = useQuery({
     queryKey: ["crypto"],
@@ -48,20 +51,20 @@ export default function CryptoWidget() {
     refetchInterval: 30_000,
   });
 
-  if (error) return <div className="p-2 down">Error: {(error as Error).message}</div>;
+  if (error) return <div className="p-2 down">{t("Error:")} {(error as Error).message}</div>;
 
   return (
     <div>
       {global && (
         <div className="flex gap-4 px-2 py-1 border-b border-[var(--border)] dim">
-          <span>Total MCap <span className="text-[var(--text)]">{fmtBig(global.totalMarketCap)}</span></span>
-          <span>BTC.D <span className="amber">{fmt(global.btcDominance, 1)}%</span></span>
-          <span>ETH.D <span className="amber">{fmt(global.ethDominance, 1)}%</span></span>
+          <span>{t("Total MCap")} <span className="text-[var(--text)]">{fmtBig(global.totalMarketCap)}</span></span>
+          <span>{t("BTC.D")} <span className="amber">{fmt(global.btcDominance, 1)}%</span></span>
+          <span>{t("ETH.D")} <span className="amber">{fmt(global.ethDominance, 1)}%</span></span>
         </div>
       )}
       <table className="data-table">
         <thead>
-          <tr><th>#</th><th>Asset</th><th>Price</th><th>24h%</th><th>MCap</th><th>Vol 24h</th><th>7d</th></tr>
+          <tr><th>#</th><th>{t("Asset")}</th><th>{t("Price")}</th><th>{t("24h%")}</th><th>{t("MCap")}</th><th>{t("Vol 24h")}</th><th>{t("7d")}</th></tr>
         </thead>
         <tbody>
           {data.map((c) => (
