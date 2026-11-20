@@ -1,6 +1,7 @@
 import asyncio
+import sys
 from decimal import Decimal
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
@@ -66,11 +67,21 @@ def test_missing_sdk_and_factory_failure_do_not_expose_credentials(monkeypatch):
         assert client.get("/longbridge/status").json()["error"] == "connection_failed"
 
 
-def test_sse_ready_quote_heartbeat_and_disconnect_cleanup():
+@pytest.mark.parametrize("injected", [True, False])
+def test_sse_ready_quote_heartbeat_and_disconnect_cleanup(monkeypatch, injected):
     async def scenario():
         sdk = FakeSDK()
-        service = LongbridgeService(factory=lambda: sdk, heartbeat=0.01)
+        if injected:
+            service = LongbridgeService(factory=lambda: sdk, heartbeat=0.01)
+        else:
+            monkeypatch.setitem(sys.modules, "longbridge.openapi", ModuleType("longbridge.openapi"))
+            monkeypatch.setattr("signaldeck_quant.longbridge.LongbridgeSDK", lambda credentials: sdk)
+            service = LongbridgeService(credentials={
+                "LONGPORT_APP_KEY": "fixture-key", "LONGPORT_APP_SECRET": "fixture-secret",
+                "LONGPORT_ACCESS_TOKEN": "fixture-token",
+            }, heartbeat=0.01)
         app = app_for(service)
+        assert TestClient(app).get("/longbridge/status").json()["available"] is True
         messages = []
         disconnected = asyncio.Event()
 

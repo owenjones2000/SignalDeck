@@ -1,4 +1,5 @@
 import inspect
+import subprocess
 import sys
 from types import SimpleNamespace
 
@@ -68,3 +69,13 @@ def test_partial_configuration_is_unconfigured_even_when_sdk_is_installed():
     assert service.status() == {
         "configured": False, "available": False, "source": "longbridge", "error": "not_configured",
     }
+
+
+def test_installed_sdk_availability_is_repeatable_in_fresh_process():
+    pytest.importorskip("longbridge.openapi")
+    result = subprocess.run([
+        sys.executable, "-c",
+        "from signaldeck_quant.longbridge import sdk_available; "
+        "assert [sdk_available() for _ in range(3)] == [True, True, True]",
+    ], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stderr

@@ -11,7 +11,7 @@ async function json(url: string, dependencies: Dependencies, headers?: HeadersIn
 }
 
 async function yahoo(request: HistoryRequest, dependencies: Dependencies): Promise<Bar[]> {
-    const interval = { "1": "1m", "5": "5m", "15": "15m", "60": "60m", "240": "60m", "1D": "1d", "1W": "1wk", "1M": "1mo" }[request.timeframe];
+    const interval = { "1": "1m", "5": "5m", "15": "15m", "30": "30m", "60": "60m", "240": "60m", "1D": "1d", "1W": "1wk", "1M": "1mo" }[request.timeframe];
     const range = { "1D": "1d", "5D": "5d", "1M": "1mo", "6M": "6mo", YTD: "ytd", "1Y": "1y", "5Y": "5y", MAX: "max" }[request.range];
     const value = await json(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(request.symbol)}?range=${range}&interval=${interval}`, dependencies);
     const payload = value as { chart?: { error?: { description?: string }; result?: Array<{ timestamp?: number[]; indicators?: { quote?: Array<{ open?: number[]; high?: number[]; low?: number[]; close?: number[]; volume?: number[] }> } }> } };

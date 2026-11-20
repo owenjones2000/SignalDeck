@@ -18,6 +18,8 @@ export default function ChartWidget({ widget }: { widget: WidgetInstance }) {
     const [mode, setMode] = useState<HistoryMode>("live");
     const [chartType, setChartType] = useState<ChartType>("candles");
     const [active, setActive] = useState<Set<Indicator>>(new Set(["SMA20"]));
+    const [mainFormulaEnabled, setMainFormulaEnabled] = useState(true);
+    const mainFormulaRef = useRef(true);
     const [legend, setLegend] = useState<Bar | null>(null);
     const [adapter, setAdapter] = useState<ChartAdapter | null>(null);
     const [chartError, setChartError] = useState("");
@@ -41,7 +43,14 @@ export default function ChartWidget({ widget }: { widget: WidgetInstance }) {
         let instance: ChartAdapter | null = null;
         import("../../lib/vela/chart-adapter").then(({ createChartAdapter }) => {
             if (cancelled || !containerRef.current) return;
-            instance = createChartAdapter(containerRef.current, setLegend);
+            instance = createChartAdapter(containerRef.current, (bar) => {
+                if (!cancelled) setLegend(bar);
+            }, (enabled) => {
+                if (cancelled) return;
+                mainFormulaRef.current = enabled;
+                setMainFormulaEnabled(enabled);
+            });
+            instance.setMainFormula(mainFormulaRef.current);
             setAdapter(instance);
         }).catch((reason: unknown) => {
             if (!cancelled) setChartError(reason instanceof Error ? reason.message : String(reason));
@@ -76,6 +85,7 @@ export default function ChartWidget({ widget }: { widget: WidgetInstance }) {
 
     useEffect(() => { adapter?.setStyle(chartType); }, [adapter, chartType]);
     useEffect(() => { adapter?.setIndicators(active); }, [adapter, active]);
+    useEffect(() => { adapter?.setMainFormula(mainFormulaEnabled); }, [adapter, mainFormulaEnabled]);
 
     async function runPine() {
         if (!adapter || !marketReady || running) return;
@@ -105,28 +115,33 @@ export default function ChartWidget({ widget }: { widget: WidgetInstance }) {
         <div className="flex flex-col h-full min-h-0">
             <div className="flex gap-1 p-1 flex-wrap shrink-0">
                 {RANGES.map((value) => (
-                    <button key={value} className={`term-btn ${range === value ? "active" : ""}`} aria-pressed={range === value} onClick={() => { setRange(value); setTimeframe(DEFAULT_TIMEFRAME[value]); }}>{value}</button>
+                    <button key={value} className={`term-btn ${range === value ? "active" : ""}`} aria-pressed={range === value} onClick={() => { setRange(value); if (mode !== "longbridge") setTimeframe(DEFAULT_TIMEFRAME[value]); }}>{value}</button>
                 ))}
                 <label className="flex items-center gap-1 text-[11px] dim">{t("周期")}
                     <select aria-label={t("Timeframe")} className="term-btn" value={timeframe} onChange={(event) => setTimeframe(event.target.value as Timeframe)}>
-                        {TIMEFRAMES.map((value) => <option key={value} value={value}>{/^\d+$/.test(value) ? `${value}m` : value}</option>)}
+                        {TIMEFRAMES.filter((value) => mode !== "longbridge" || ["30", "1D", "1W"].includes(value)).map((value) => <option key={value} value={value}>{/^\d+$/.test(value) ? `${value}m` : value}</option>)}
                     </select>
                 </label>
                 <label className="flex items-center gap-1 text-[11px] dim">{t("数据")}
-                    <select aria-label={t("数据模式")} className="term-btn" value={mode} onChange={(event) => setMode(event.target.value as HistoryMode)}>
-                        <option value="live">{t("LIVE")}</option><option value="fixture">{t("FIXTURE · 模拟")}</option>
+                    <select aria-label={t("数据模式")} className="term-btn" value={mode} onChange={(event) => { const next = event.target.value as HistoryMode; setMode(next); if (next === "longbridge" && !["30", "1D", "1W"].includes(timeframe)) setTimeframe("1D"); }}>
+                        <option value="longbridge">长桥 · 前复权</option><option value="live">{t("LIVE")}</option><option value="fixture">{t("FIXTURE · 模拟")}</option>
                     </select>
                 </label>
                 {CHART_TYPES.map((value) => <button key={value} className={`term-btn ${chartType === value ? "active" : ""}`} aria-pressed={chartType === value} onClick={() => setChartType(value)}>{translateText(value)}</button>)}
                 {INDICATORS.map((value) => <button key={value} className={`term-btn ${active.has(value) ? "active" : ""}`} aria-pressed={active.has(value)} onClick={() => toggleIndicator(value)}>{value}</button>)}
+                <button className={`term-btn ${mainFormulaEnabled ? "active" : ""}`} aria-pressed={mainFormulaEnabled} onClick={() => { mainFormulaRef.current = !mainFormulaEnabled; setMainFormulaEnabled(mainFormulaRef.current); }}>{t("主图公式")}</button>
                 <button className={`term-btn ${editorOpen ? "active" : ""}`} aria-expanded={editorOpen} onClick={() => setEditorOpen(!editorOpen)}>PINE</button>
             </div>
             <div className="px-2 pb-1 text-[11px] dim flex gap-3 flex-wrap" role="status">
                 <a href="https://velacharts.dev" target="_blank" rel="noreferrer">Vela™</a>
-                <span>{symbol} · {timeframe} · {mode === "fixture" ? t("FIXTURE 模拟数据") : t("LIVE")}</span>
+                <span>{symbol} · {timeframe} · {mode === "fixture" ? t("FIXTURE 模拟数据") : mode === "longbridge" ? "长桥 · 前复权" : t("LIVE")}</span>
                 <span>{isFetching ? t("加载中…") : t("{count} bars · {source}", { count: data?.bars.length ?? 0, source: data?.source ?? t("无数据源") })}</span>
                 {data?.attempts.map((attempt, index) => <span key={`${attempt.source}-${index}`} title={attempt.error}>{attempt.source}: {translateText(attempt.status)}{attempt.cache ? ` · ${attempt.cache === "stale" ? t("旧缓存 (stale)") : `cache=${attempt.cache}`}` : ""}</span>)}
             </div>
+            {mainFormulaEnabled && <div className="px-2 pb-1 text-[11px] dim">
+                <p>{t("主图公式周期说明", { timeframe })}</p>
+                {data && data.bars.length < 200 && <p>{t("主图公式历史不足")}</p>}
+            </div>}
             {(error || chartError) && <div className="p-2 down text-[11px]" role="alert">{error?.message ?? chartError}</div>}
             <div className="relative flex-1 min-h-0">
                 {legend && <div className="absolute top-1 left-2 z-10 flex gap-3 flex-wrap text-[11px] pointer-events-none bg-[rgba(10,10,10,0.7)] px-2 py-1 rounded">

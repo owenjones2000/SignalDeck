@@ -13,7 +13,7 @@ import { useLocale } from "../store/locale";
 import { useTerminal } from "../store/terminal";
 import { quantRequest } from "../lib/quant/client";
 
-vi.mock("../lib/vela/chart-adapter", () => ({ createChartAdapter: () => ({ destroy() {}, clearPine() {}, setMarket: async () => {}, setStyle() {}, setIndicators() {}, runPine: async () => "Example" }) }));
+vi.mock("../lib/vela/chart-adapter", () => ({ createChartAdapter: () => ({ destroy() {}, clearPine() {}, setMarket: async () => {}, setStyle() {}, setIndicators() {}, setMainFormula() {}, runPine: async () => "Example" }) }));
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); useLocale.getState().setLocale("zh-CN"); });
 
 it("switches quant forms, empty states and service status in place without changing selected formula keys", async () => {
@@ -53,6 +53,9 @@ it("translates chart controls and Pine result state without using translated tex
     await waitFor(() => expect((screen.getByRole("button", { name: "Run" }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByRole("button", { name: "Run" }));
     await screen.findByText("Executed: Example");
+    fireEvent.click(screen.getByRole("button", { name: "Main formula" }));
+    expect(screen.getByText("Executed: Example")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Main formula" }).getAttribute("aria-pressed")).toBe("false");
     act(() => useLocale.getState().setLocale("zh-CN"));
     expect(screen.getByText("已执行：Example")).toBeTruthy();
 });

@@ -3,7 +3,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import WatchWidget from "./WatchWidget";
 import { mockApi, renderQuant, status } from "./test-support";
 
-const vela = vi.hoisted(() => ({ setMarket: vi.fn().mockResolvedValue(undefined), setStyle: vi.fn(), destroy: vi.fn() }));
+const vela = vi.hoisted(() => ({ setMarket: vi.fn().mockResolvedValue(undefined), setStyle: vi.fn(), setMainFormula: vi.fn(), destroy: vi.fn() }));
 vi.mock("../../lib/vela/chart-adapter", () => ({ createChartAdapter: () => vela }));
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });

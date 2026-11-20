@@ -1,12 +1,13 @@
 import asyncio
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
 
-from signaldeck_quant.longbridge import LongbridgeError, QuoteHub
+from signaldeck_quant.longbridge import LongbridgeError, QuoteHub, quote_payload
 
 
 class FakeSDK:
@@ -23,6 +24,28 @@ class FakeSDK:
 
     def unsubscribe(self, symbols):
         self.unsubscribed.append(list(symbols))
+
+
+@pytest.mark.skipif(not hasattr(time, "tzset"), reason="requires process timezone control")
+@pytest.mark.parametrize("zone,wall_time,expected", [
+    ("Asia/Hong_Kong", datetime(2026, 11, 20, 16), "2026-11-20T08:00:00+00:00"),
+    ("UTC", datetime(2026, 11, 20, 16), "2026-11-20T16:00:00+00:00"),
+    ("America/New_York", datetime(2026, 7, 20, 16), "2026-07-20T20:00:00+00:00"),
+    ("America/New_York", datetime(2026, 11, 20, 16), "2026-11-20T21:00:00+00:00"),
+])
+def test_sdk_naive_quote_timestamp_uses_process_timezone(monkeypatch, zone, wall_time, expected):
+    try:
+        with monkeypatch.context() as patch:
+            patch.setenv("TZ", zone)
+            time.tzset()
+            payload = quote_payload("7709.HK", SimpleNamespace(timestamp=wall_time))
+            assert payload["timestamp"] == expected
+            aware = datetime(2026, 11, 20, 16, tzinfo=timezone(timedelta(hours=8)))
+            assert quote_payload("7709.HK", SimpleNamespace(timestamp=aware))["timestamp"] == (
+                "2026-11-20T08:00:00+00:00"
+            )
+    finally:
+        time.tzset()
 
 
 def test_first_subscriber_subscribes_and_last_subscriber_unsubscribes():

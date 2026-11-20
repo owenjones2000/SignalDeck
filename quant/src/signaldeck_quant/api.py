@@ -11,6 +11,7 @@ from starlette.exceptions import HTTPException
 
 from .backtest import run_backtest
 from .data import AkShareProvider, MarketData, validate_code
+from . import kline
 from .longbridge import LongbridgeService
 from .rules import FORMULAS, STRATEGIES, evaluate_formula, latest_signals
 
@@ -85,6 +86,7 @@ def create_app(data: MarketData | None = None, longbridge: LongbridgeService | N
 
     app = FastAPI(title="SignalDeck internal quant", docs_url=None, redoc_url=None, lifespan=lifespan)
     app.include_router(longbridge.router)
+    app.include_router(kline.router)
     market = data if data is not None else MarketData(AkShareProvider())
 
     @app.exception_handler(RequestValidationError)

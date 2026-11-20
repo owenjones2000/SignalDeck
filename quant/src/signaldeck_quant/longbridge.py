@@ -1,5 +1,5 @@
 import asyncio
-import importlib.util
+import importlib
 import json
 import math
 import os
@@ -36,8 +36,6 @@ def finite_number(value):
 def quote_payload(symbol: str, event) -> dict:
     timestamp = getattr(event, "timestamp", None)
     if isinstance(timestamp, datetime):
-        if timestamp.tzinfo is None:
-            timestamp = timestamp.replace(tzinfo=timezone.utc)
         timestamp = timestamp.astimezone(timezone.utc).isoformat()
     else:
         timestamp = None
@@ -246,7 +244,8 @@ def parse_symbols(value: str) -> list[str]:
 
 def sdk_available() -> bool:
     try:
-        return importlib.util.find_spec("longbridge.openapi") is not None
+        importlib.import_module("longbridge.openapi")
+        return True
     except (ImportError, ValueError):
         return False
 

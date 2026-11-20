@@ -1,5 +1,5 @@
 export const RANGES = ["1D", "5D", "1M", "6M", "YTD", "1Y", "5Y", "MAX"] as const;
-export const TIMEFRAMES = ["1", "5", "15", "60", "240", "1D", "1W", "1M"] as const;
+export const TIMEFRAMES = ["1", "5", "15", "30", "60", "240", "1D", "1W", "1M"] as const;
 export const CHART_TYPES = ["candles", "bars", "line", "area"] as const;
 export const INDICATORS = ["SMA20", "SMA50", "SMA200", "EMA20", "VWAP", "BOLL", "RSI", "MACD"] as const;
 export type Indicator = (typeof INDICATORS)[number];
@@ -10,7 +10,7 @@ plot(ta.sma(close, 20), color=color.orange, linewidth=2)`;
 export type Range = (typeof RANGES)[number];
 export type Timeframe = (typeof TIMEFRAMES)[number];
 export type ChartType = (typeof CHART_TYPES)[number];
-export type HistoryMode = "live" | "fixture";
+export type HistoryMode = "live" | "fixture" | "longbridge";
 export type Bar = { time: number; open: number; high: number; low: number; close: number; volume: number };
 export type Attempt = { source: string; status: "success" | "error"; error?: string; cache?: "hit" | "miss" | "stale" | "none" | "unknown" };
 export type HistoryResult = {
